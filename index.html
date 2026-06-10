@@ -213,12 +213,7 @@
   }
   .amount-inline-input::-webkit-inner-spin-button,
   .amount-inline-input::-webkit-outer-spin-button { -webkit-appearance: none; }
-  .reset-price-btn {
-    font-size: 10px; color: var(--muted); background: none; border: none;
-    cursor: pointer; padding: 0 4px; line-height: 1; transition: color 0.15s;
-    font-family: 'Inter', sans-serif;
-  }
-  .reset-price-btn:hover { color: var(--red); }
+
 
   /* ── PRICING MANAGER ── */
   .pricing-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px; padding: 28px 40px 40px; }
@@ -728,21 +723,15 @@ function amountCellHTML(paymentStatus, clientName, projectName) {
     return `<span style="color:var(--muted)">–</span>`;
   }
   const rate       = getProjectRate(clientName, projectName);
-  const overridden = hasProjectOverride(clientName, projectName);
   const cls        = paymentStatus === 'paid' ? 'earned' : 'owed';
   const safeClient  = encodeURIComponent(clientName);
   const safeProject = encodeURIComponent(projectName);
-  const resetBtn   = overridden
-    ? `<button class="reset-price-btn" title="Reset to client default (${fmt(getRate(clientName))})"
-         onclick="event.stopPropagation();doResetProjectRate('${safeClient}','${safeProject}')">↺</button>`
-    : '';
   return `<span class="amount-cell"
       data-client="${safeClient}" data-project="${safeProject}"
       ondblclick="startInlineEdit(this)"
       title="Double-click to set a custom price for this project">
     <span class="amount ${cls}">${fmt(rate)}</span>
     <span class="edit-pencil">✎</span>
-    ${resetBtn}
   </span>`;
 }
 
