@@ -196,7 +196,6 @@
 
   /* ── PER-PROJECT INLINE EDIT ── */
   .amount-cell { position: relative; display: inline-flex; align-items: center; gap: 5px; cursor: default; }
-  .amount-cell[data-overridden="true"] .amount { text-decoration: underline dotted; text-underline-offset: 3px; }
   .amount-cell .edit-hint {
     font-size: 9px; color: var(--muted); opacity: 0; transition: opacity 0.15s;
     letter-spacing: 0.5px; text-transform: uppercase; font-family: 'Inter', sans-serif;
@@ -362,13 +361,12 @@
 // ═══════════════════════════════════════════════════════════════════════════
 const RATE_DEFAULTS = {
   'LHF': 500, 'Boney': 500, 'L&S': 500, 'Jeya': 500,
-  'AM Market': 500, 'BullionFX': 400, 'Goreng Story': 500
+  'AM Market': 500, 'BullionFX': 500, 'Goreng Story': 500
 };
 
 let clientRates = {};
 let futureClientRates = {};
 let projectPriceSnapshots = {};
-let hasPendingProjectChanges = false;
 
 function loadRates() {
   try {
@@ -377,6 +375,8 @@ function loadRates() {
     for (const [k, v] of Object.entries(RATE_DEFAULTS)) {
       if (clientRates[k] === undefined) clientRates[k] = v;
     }
+    // Force BullionFX back to 500
+    clientRates['BullionFX'] = 500;
   } catch (e) {
     clientRates = { ...RATE_DEFAULTS };
   }
@@ -398,6 +398,8 @@ function loadFutureRates() {
       futureClientRates[k] = clientRates[k] ?? v;
     }
   }
+  // Force BullionFX back to 500
+  futureClientRates['BullionFX'] = 500;
 }
 
 function saveFutureRates() {
@@ -459,7 +461,8 @@ function setProjectRate(clientName, projectName, value) {
   const key = getProjectKey(clientName, projectName);
   projectOverrides[key] = value;
   saveProjectOverrides();
-  showProjectRefreshButton();
+  // Re-render immediately — no pending state, no refresh button
+  renderAll();
 }
 
 function resetProjectRate(clientName, projectName) {
@@ -674,7 +677,7 @@ function badgeHTML(status) {
     unpaid:   ['badge-unpaid',   '✕ Not Paid'],
     exported: ['badge-exported', '✓ Exported'],
     checking: ['badge-checking', '⏳ For Checking'],
-    pending:  ['badge-pending',  '⏳ Pending'],
+    pending:  ['badge-pending',  '⏅ Pending'],
   };
   const [cls, label] = map[status] || ['badge-pending', status];
   return `<span class="badge ${cls}">${label}</span>`;
@@ -733,7 +736,7 @@ function amountCellHTML(paymentStatus, clientName, projectName) {
     ? `<button class="reset-price-btn" title="Reset to client default (${fmt(getRate(clientName))})"
          onclick="event.stopPropagation();doResetProjectRate('${safeClient}','${safeProject}')">↺</button>`
     : '';
-  return `<span class="amount-cell" data-overridden="${overridden}"
+  return `<span class="amount-cell"
       data-client="${safeClient}" data-project="${safeProject}"
       ondblclick="startInlineEdit(this)"
       title="Double-click to set a custom price for this project">
@@ -766,26 +769,13 @@ function startInlineEdit(cell) {
     committed = true;
     const val = parseInt(input.value, 10);
     if (!isNaN(val) && val >= 0) setProjectRate(clientName, projectName, val);
-    renderAll();
+    else renderAll();
   }
   input.addEventListener('keydown', e => {
     if (e.key === 'Enter')  { e.preventDefault(); commit(); }
     if (e.key === 'Escape') { committed = true; renderAll(); }
   });
   input.addEventListener('blur', commit);
-}
-
-function showProjectRefreshButton() {
-  hasPendingProjectChanges = true;
-  const btn = document.getElementById('project-refresh-btn');
-  if (btn) btn.style.display = '';
-}
-
-function refreshProjectPricingData() {
-  hasPendingProjectChanges = false;
-  const btn = document.getElementById('project-refresh-btn');
-  if (btn) btn.style.display = 'none';
-  renderAll();
 }
 
 function doResetProjectRate(safeClient, safeProject) {
@@ -1116,7 +1106,6 @@ function renderPricing() {
     <div class="pricing-save-bar">
       <button class="pricing-save-btn" onclick="savePricingFromUI()">Save Rates</button>
       <button class="pricing-save-btn" onclick="saveFutureRatesOnly()">Save Future Rates</button>
-      <button id="project-refresh-btn" class="pricing-save-btn" style="display:none" onclick="refreshProjectPricingData()">Refresh</button>
       <span class="pricing-saved-msg" id="pricing-saved-msg">✓ Rates saved</span>
     </div>
 
